@@ -1,84 +1,28 @@
 package org.example;
 
-public class Pet {
-    private String name;
-    private String species;
-    private String feature;
-    private int loyalty;
+import java.util.List;
+import static org.example.AbstractCharacter.clamp;
+import static org.example.AbstractCharacter.sanitize;
 
-    public Pet() {
-        this("Безымянный питомец", "неизвестный вид", "без особенностей", 5);
+public record Pet(String name, String species, String feature, int loyalty) {
+    public Pet {
+        name = sanitize(name, "Безымянный питомец");
+        species = sanitize(species, "неизвестный вид");
+        feature = sanitize(feature, "без особенностей");
+        loyalty = clamp(loyalty, 1, 10);
     }
+    public Pet() { this(null, null, null, 5); }
+    public Pet(String n, String s) { this(n, s, null, 6); }
+    public Pet(Pet o) { this(o.name(), o.species(), o.feature(), o.loyalty()); }
+    public String describe() { return "%s (%s). Особенность: %s. Верность: %d/10.".formatted(name, species, feature, loyalty); }
 
-    public Pet(String name, String species) {
-        this(name, species, "редкая выносливость", 6);
-    }
-
-    public Pet(String name, String species, String feature, int loyalty) {
-        this.name = normalize(name, "Безымянный питомец");
-        this.species = normalize(species, "неизвестный вид");
-        this.feature = normalize(feature, "без особенностей");
-        this.loyalty = clamp(loyalty, 1, 10);
-    }
-
-    public Pet(Pet other) {
-        this(other.getName(), other.getSpecies(), other.getFeature(), other.getLoyalty());
-    }
-
-    private static String normalize(String value, String fallback) {
-        if (value == null) {
-            return fallback;
-        }
-        String normalized = value.trim();
-        return normalized.isEmpty() ? fallback : normalized;
-    }
-
-    private static int clamp(int value, int min, int max) {
-        if (value < min) {
-            return min;
-        }
-        return Math.min(value, max);
-    }
-
-    public String describe() {
-        return String.format(
-                "%s (%s). Особенность: %s. Верность: %d/10.",
-                name,
-                species,
-                feature,
-                loyalty
+    public static List<Pet> getTemplates() {
+        return List.of(
+            new Pet("Сумеречный Лис", "магический лис", "умеет находить иллюзии", 8),
+            new Pet("Искра", "механический ворон", "распознает скрытые механизмы", 9),
+            new Pet("Глим", "кристальный дракончик", "усиливает магию владельца", 7),
+            new Pet("Мокрец", "болотный дух", "лечит ядовитые раны", 6),
+            new Pet("Бархан", "песчаный кот", "чувствует приближение бурь", 8)
         );
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = normalize(name, this.name);
-    }
-
-    public String getSpecies() {
-        return species;
-    }
-
-    public void setSpecies(String species) {
-        this.species = normalize(species, this.species);
-    }
-
-    public String getFeature() {
-        return feature;
-    }
-
-    public void setFeature(String feature) {
-        this.feature = normalize(feature, this.feature);
-    }
-
-    public int getLoyalty() {
-        return loyalty;
-    }
-
-    public void setLoyalty(int loyalty) {
-        this.loyalty = clamp(loyalty, 1, 10);
     }
 }

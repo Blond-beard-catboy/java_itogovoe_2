@@ -1,61 +1,26 @@
 package org.example;
 
-public class Event {
-    private String title;
-    private String description;
-    private String consequence;
+import java.util.List;
+import static org.example.AbstractCharacter.sanitize;
 
-    public Event() {
-        this("Безымянное событие", "в мире произошло нечто необычное", "последствия пока неизвестны");
+public record Event(String title, String description, String consequence) {
+    public Event {
+        title = sanitize(title, "Безымянное событие");
+        description = sanitize(description, "в мире произошло нечто необычное");
+        consequence = sanitize(consequence, "последствия пока неизвестны");
     }
+    public Event() { this(null, null, null); }
+    public Event(String t, String d) { this(t, d, null); }
+    public Event(Event o) { this(o.title(), o.description(), o.consequence()); }
+    public String describe() { return "%s: %s. Последствия: %s.".formatted(title, description, consequence); }
 
-    public Event(String title, String description) {
-        this(title, description, "последствия развиваются");
-    }
-
-    public Event(String title, String description, String consequence) {
-        this.title = normalize(title, "Безымянное событие");
-        this.description = normalize(description, "в мире произошло нечто необычное");
-        this.consequence = normalize(consequence, "последствия пока неизвестны");
-    }
-
-    public Event(Event other) {
-        this(other.getTitle(), other.getDescription(), other.getConsequence());
-    }
-
-    private static String normalize(String value, String fallback) {
-        if (value == null) {
-            return fallback;
-        }
-        String normalized = value.trim();
-        return normalized.isEmpty() ? fallback : normalized;
-    }
-
-    public String describe() {
-        return String.format("%s: %s. Последствия: %s.", title, description, consequence);
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = normalize(title, this.title);
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = normalize(description, this.description);
-    }
-
-    public String getConsequence() {
-        return consequence;
-    }
-
-    public void setConsequence(String consequence) {
-        this.consequence = normalize(consequence, this.consequence);
+    public static List<Event> getTemplates() {
+        return List.of(
+            new Event("Световой разлом", "над столицей открылся мерцающий разлом", "в город хлынули неизвестные сущности"),
+            new Event("Затмение двух лун", "небо потемнело в разгар дня", "магия огня стала нестабильной"),
+            new Event("Пробуждение титана", "в горах задвигался каменный исполин", "древние дороги оказались перекрыты"),
+            new Event("Песнь глубин", "из подземных колодцев донеслись голоса", "жители стали видеть одинаковые сны"),
+            new Event("Парад механистов", "автономные машины вышли из-под контроля", "стража перекрыла квартал мастерских")
+        );
     }
 }
