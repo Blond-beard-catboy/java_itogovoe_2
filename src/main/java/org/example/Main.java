@@ -11,6 +11,11 @@ public class Main {
     private static int textWidthLimit = -1;
 
     public static void main(String[] args) {
+        // Включаем поддержку ANSI в Windows 10+
+        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+            try { new ProcessBuilder("cmd", "/c", "").inheritIO().start().waitFor(); } catch (Exception ignored) {}
+        }
+
         try (var sc = new Scanner(System.in)) {
             println("=== Конструктор виртуального мира (ООП) ===");
             print("Введите название мира (Enter по умолчанию \"%s\"): ".formatted(VirtualWorld.getWorldName()));
