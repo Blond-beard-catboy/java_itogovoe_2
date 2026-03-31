@@ -1,499 +1,138 @@
 package org.example;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public final class TerminalCatAnimation implements AutoCloseable {
-    private static final String CSI = "\u001B[";
-    private static final String SAVE_CURSOR = "\u001B7";
-    private static final String RESTORE_CURSOR = "\u001B8";
-    private static final String DEFAULT_ANIMATION_FILE = "cat-animation.txt";
-    private static final long DEFAULT_FRAME_DELAY_MS = 100L;
-    private static final int MIN_TEXT_COLUMNS = 20;
-    private static final Pattern DELAY_PATTERN = Pattern.compile("var\\s+delay\\s*=\\s*(\\d+)");
-    private static final Pattern FRAME_PATTERN = Pattern.compile(
-            "fcontent\\[(\\d+)]\\s*=\\s*\"(.*?)\"\\s*",
-            Pattern.DOTALL
-    );
-
+    private static final Pattern DELAY = Pattern.compile("var\\s+delay\\s*=\\s*(\\d+)"),
+                                FRAME = Pattern.compile("fcontent\\[(\\d+)]\\s*=\\s*\"(.*?)\"\\s*", Pattern.DOTALL);
     private final boolean enabled;
-    private final int startRow;
-    private final int startCol;
-    private final int frameWidth;
-    private final int frameHeight;
+    private final int startRow, startCol, frameWidth, frameHeight;
     private final List<String[]> frames;
-    private final long frameDelayMs;
+    private final long delay;
     private volatile boolean running;
     private Thread worker;
 
-    private TerminalCatAnimation(
-            boolean enabled,
-            int startRow,
-            int startCol,
-            int frameWidth,
-            int frameHeight,
-            List<String[]> frames,
-            long frameDelayMs
-    ) {
-        this.enabled = enabled;
-        this.startRow = startRow;
-        this.startCol = startCol;
-        this.frameWidth = frameWidth;
-        this.frameHeight = frameHeight;
-        this.frames = frames;
-        this.frameDelayMs = frameDelayMs;
+    private TerminalCatAnimation(boolean e, int r, int c, int w, int h, List<String[]> fs, long d) {
+        this.enabled = e; this.startRow = r; this.startCol = c; this.frameWidth = w; this.frameHeight = h; this.frames = fs; this.delay = d;
     }
 
-    public static TerminalCatAnimation start() {
-        return start(DEFAULT_ANIMATION_FILE);
-    }
-
-    public static TerminalCatAnimation start(String animationFileName) {
-        String disabled = System.getenv("NO_CAT_ANIMATION");
-        if ("1".equals(disabled) || "true".equalsIgnoreCase(disabled)) {
-            return disabledAnimation();
-        }
-
-        AnimationData animationData = loadFrames(animationFileName);
-        List<String[]> frames = animationData.frames();
-        int frameWidth = maxFrameWidth(frames);
-        int frameHeight = maxFrameHeight(frames);
-        int columns = detectColumns();
-
-        if (frameWidth == 0 || frameHeight == 0) {
-            return disabledAnimation();
-        }
-        if (columns < frameWidth + MIN_TEXT_COLUMNS + 2) {
-            return disabledAnimation();
-        }
-
-        int startCol = columns - frameWidth;
-        TerminalCatAnimation animation = new TerminalCatAnimation(
-                true,
-                2,
-                Math.max(1, startCol),
-                frameWidth,
-                frameHeight,
-                frames,
-                animationData.delayMs()
-        );
-        animation.startWorker();
-        return animation;
-    }
-
-    private static TerminalCatAnimation disabledAnimation() {
-        return new TerminalCatAnimation(false, 0, 0, 0, 0, List.of(), DEFAULT_FRAME_DELAY_MS);
-    }
-
-    private static AnimationData loadFrames(String animationFileName) {
-        Path animationPath = resolveAnimationPath(animationFileName);
-        if (animationPath == null) {
-            return new AnimationData(List.of(), DEFAULT_FRAME_DELAY_MS);
-        }
-
+    public static TerminalCatAnimation start(String file) {
+        if ("true".equalsIgnoreCase(System.getenv("NO_CAT_ANIMATION"))) return disabled();
+        var path = resolve(file);
+        if (path == null) return disabled();
         try {
-            String content = Files.readString(animationPath, StandardCharsets.UTF_8);
-            long delay = parseDelay(content);
-            List<String[]> parsed = parseFrames(content);
-            if (parsed.isEmpty()) {
-                return new AnimationData(List.of(), delay);
-            }
-            return new AnimationData(parsed, delay);
-        } catch (IOException ignored) {
-            return new AnimationData(List.of(), DEFAULT_FRAME_DELAY_MS);
-        }
+            var content = Files.readString(path, StandardCharsets.UTF_8);
+            var dMatcher = DELAY.matcher(content);
+            long d = dMatcher.find() ? Long.parseLong(dMatcher.group(1)) : 100L;
+            var raw = parse(content);
+            if (raw.isEmpty()) return disabled();
+            var b = getBounds(raw);
+            int w = b.maxCol - b.minCol + 1, h = b.maxRow - b.minRow + 1, cols = getCols();
+            var fs = raw.stream().map(f -> crop(f, b)).toList();
+            var anim = new TerminalCatAnimation(true, 2, Math.max(1, cols - w), w, h, fs, d);
+            anim.run();
+            return anim;
+        } catch (Exception e) { return disabled(); }
     }
 
-    private static long parseDelay(String content) {
-        Matcher matcher = DELAY_PATTERN.matcher(content);
-        if (!matcher.find()) {
-            return DEFAULT_FRAME_DELAY_MS;
+    private static TerminalCatAnimation disabled() { return new TerminalCatAnimation(false, 0, 0, 0, 0, List.of(), 100); }
+
+    private static List<String[]> parse(String c) {
+        var m = FRAME.matcher(c);
+        var indexed = new TreeMap<Integer, String>();
+        while (m.find()) indexed.put(Integer.parseInt(m.group(1)), m.group(2));
+        if (indexed.isEmpty()) {
+            var lines = c.replace("\r", "").split("\n");
+            var fs = new ArrayList<String[]>();
+            var current = new ArrayList<String>();
+            for (var l : lines) { if (l.trim().equals(",")) { if (!current.isEmpty()) fs.add(current.toArray(String[]::new)); current.clear(); } else current.add(l); }
+            if (!current.isEmpty()) fs.add(current.toArray(String[]::new));
+            return fs;
         }
-        Integer parsed = parsePositiveInt(matcher.group(1));
-        if (parsed == null || parsed <= 0) {
-            return DEFAULT_FRAME_DELAY_MS;
-        }
-        return parsed.longValue();
+        return indexed.values().stream().map(s -> s.replace("&nbsp;", " ").replace("<br>", "\n").replace("\r", "").split("\n", -1)).toList();
     }
 
-    private static Path resolveAnimationPath(String animationFileName) {
-        String normalizedAnimationFileName = normalizeAnimationFileName(animationFileName);
-        Path cwd = Path.of("").toAbsolutePath().normalize();
-        for (Path current = cwd; current != null; current = current.getParent()) {
-            Path[] candidates = {
-                    current.resolve(normalizedAnimationFileName),
-                    current.resolve("my_project").resolve(normalizedAnimationFileName)
-            };
-            for (Path candidate : candidates) {
-                if (Files.exists(candidate) && Files.isRegularFile(candidate)) {
-                    return candidate;
+    private static Bounds getBounds(List<String[]> fs) {
+        int minR = 999, maxR = -1, minC = 999, maxC = -1;
+        for (var f : fs) for (int r = 0; r < f.length; r++) {
+            var line = f[r].stripTrailing();
+            if (line.isEmpty()) continue;
+            int first = 0; while (first < line.length() && line.charAt(first) == ' ') first++;
+            if (first >= line.length()) continue;
+            minR = Math.min(minR, r); maxR = Math.max(maxR, r);
+            minC = Math.min(minC, first); maxC = Math.max(maxC, line.length() - 1);
+        }
+        return (maxR == -1) ? new Bounds(0, 0, 0, 0) : new Bounds(minR, maxR, minC, maxC);
+    }
+
+    private static String[] crop(String[] f, Bounds b) {
+        var res = new String[b.maxRow - b.minRow + 1];
+        for (int i = 0; i < res.length; i++) {
+            var s = (b.minRow + i < f.length) ? f[b.minRow + i] : "";
+            var sb = new StringBuilder();
+            for (int j = b.minCol; j <= b.maxCol; j++) sb.append(j < s.length() ? s.charAt(j) : ' ');
+            res[i] = sb.toString();
+        }
+        return res;
+    }
+
+    private static int getCols() {
+        try {
+            var p = new ProcessBuilder("/bin/sh", "-c", "stty size < /dev/tty").start();
+            return Integer.parseInt(new String(p.getInputStream().readAllBytes()).trim().split("\\s+")[1]);
+        } catch (Exception e) { return 100; }
+    }
+
+    private void run() {
+        running = true;
+        worker = new Thread(() -> {
+            int idx = 0;
+            synchronized (System.out) { System.out.print("\u001B[?25l"); System.out.flush(); }
+            try {
+                while (running) {
+                    draw(frames.get(idx));
+                    idx = (idx + 1) % frames.size();
+                    Thread.sleep(delay);
                 }
+            } catch (InterruptedException ignored) {}
+            finally { clear(); synchronized (System.out) { System.out.print("\u001B[?25h"); System.out.flush(); } }
+        });
+        worker.setDaemon(true); worker.start();
+    }
+
+    private void draw(String[] f) {
+        synchronized (System.out) {
+            System.out.print("\u001B7");
+            for (int r = 0; r < frameHeight; r++) {
+                System.out.print("\u001B[" + (startRow + r) + ";" + startCol + "H" + (r < f.length ? f[r] : " ".repeat(frameWidth)));
             }
+            System.out.print("\u001B8"); System.out.flush();
+        }
+    }
+
+    private void clear() {
+        synchronized (System.out) {
+            System.out.print("\u001B7");
+            var b = " ".repeat(frameWidth);
+            for (int r = 0; r < frameHeight; r++) System.out.print("\u001B[" + (startRow + r) + ";" + startCol + "H" + b);
+            System.out.print("\u001B8"); System.out.flush();
+        }
+    }
+
+    private static Path resolve(String f) {
+        for (var c = Path.of("").toAbsolutePath(); c != null; c = c.getParent()) {
+            if (Files.isRegularFile(c.resolve(f))) return c.resolve(f);
+            if (Files.isRegularFile(c.resolve("my_project").resolve(f))) return c.resolve("my_project").resolve(f);
         }
         return null;
     }
 
-    private static String normalizeAnimationFileName(String animationFileName) {
-        if (animationFileName == null) {
-            return DEFAULT_ANIMATION_FILE;
-        }
-        String normalized = animationFileName.trim();
-        return normalized.isEmpty() ? DEFAULT_ANIMATION_FILE : normalized;
-    }
-
-    private static List<String[]> parseFrames(String content) {
-        List<String[]> rawFrames = parseJavaScriptFrames(content);
-        if (rawFrames.isEmpty()) {
-            rawFrames = parsePlainTextFrames(content);
-        }
-        if (rawFrames.isEmpty()) {
-            return List.of();
-        }
-
-        Bounds bounds = calculateBounds(rawFrames);
-        if (bounds.isEmpty()) {
-            return List.of();
-        }
-
-        List<String[]> cropped = new ArrayList<>();
-        for (String[] frame : rawFrames) {
-            cropped.add(cropFrame(frame, bounds));
-        }
-        return cropped;
-    }
-
-    private static List<String[]> parseJavaScriptFrames(String content) {
-        Matcher matcher = FRAME_PATTERN.matcher(content);
-        Map<Integer, String> indexedFrames = new HashMap<>();
-        while (matcher.find()) {
-            Integer index = parsePositiveInt(matcher.group(1));
-            if (index != null) {
-                indexedFrames.put(index, matcher.group(2));
-            }
-        }
-        if (indexedFrames.isEmpty()) {
-            return List.of();
-        }
-
-        List<Map.Entry<Integer, String>> sorted = indexedFrames.entrySet()
-                .stream()
-                .sorted(Comparator.comparingInt(Map.Entry::getKey))
-                .toList();
-
-        List<String[]> rawFrames = new ArrayList<>();
-        for (Map.Entry<Integer, String> entry : sorted) {
-            String normalized = entry.getValue()
-                    .replace("&nbsp;", " ")
-                    .replace("<br>", "\n")
-                    .replace("\r", "");
-            String[] lines = normalized.split("\n", -1);
-            rawFrames.add(lines);
-        }
-        return rawFrames;
-    }
-
-    private static List<String[]> parsePlainTextFrames(String content) {
-        String normalized = content.replace("\r\n", "\n").replace('\r', '\n');
-        String[] lines = normalized.split("\n", -1);
-
-        List<String[]> frames = new ArrayList<>();
-        List<String> frameLines = new ArrayList<>();
-
-        for (String line : lines) {
-            if (",".equals(line.trim())) {
-                addPlainTextFrame(frames, frameLines);
-                frameLines.clear();
-                continue;
-            }
-            frameLines.add(line);
-        }
-        addPlainTextFrame(frames, frameLines);
-
-        return frames;
-    }
-
-    private static void addPlainTextFrame(List<String[]> frames, List<String> frameLines) {
-        int start = 0;
-        int end = frameLines.size() - 1;
-
-        while (start <= end && frameLines.get(start).trim().isEmpty()) {
-            start++;
-        }
-        while (end >= start && frameLines.get(end).trim().isEmpty()) {
-            end--;
-        }
-
-        if (start > end) {
-            return;
-        }
-
-        List<String> trimmed = frameLines.subList(start, end + 1);
-        boolean hasContent = false;
-        for (String line : trimmed) {
-            if (!line.trim().isEmpty()) {
-                hasContent = true;
-                break;
-            }
-        }
-        if (!hasContent) {
-            return;
-        }
-
-        frames.add(trimmed.toArray(String[]::new));
-    }
-
-    private static Integer parsePositiveInt(String value) {
-        if (value == null) {
-            return null;
-        }
-        try {
-            int parsed = Integer.parseInt(value.trim());
-            return parsed >= 0 ? parsed : null;
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
-    }
-
-    private static Bounds calculateBounds(List<String[]> frames) {
-        int minRow = Integer.MAX_VALUE;
-        int maxRow = -1;
-        int minCol = Integer.MAX_VALUE;
-        int maxCol = -1;
-
-        for (String[] frame : frames) {
-            for (int row = 0; row < frame.length; row++) {
-                String line = frame[row];
-                int first = firstNonSpace(line);
-                if (first < 0) {
-                    continue;
-                }
-                int last = lastNonSpace(line);
-                minRow = Math.min(minRow, row);
-                maxRow = Math.max(maxRow, row);
-                minCol = Math.min(minCol, first);
-                maxCol = Math.max(maxCol, last);
-            }
-        }
-
-        if (maxRow < minRow || maxCol < minCol) {
-            return Bounds.empty();
-        }
-        return new Bounds(minRow, maxRow, minCol, maxCol);
-    }
-
-    private static String[] cropFrame(String[] frame, Bounds bounds) {
-        int height = bounds.maxRow - bounds.minRow + 1;
-        int width = bounds.maxCol - bounds.minCol + 1;
-        String[] cropped = new String[height];
-
-        for (int i = 0; i < height; i++) {
-            int sourceRow = bounds.minRow + i;
-            String source = sourceRow < frame.length ? frame[sourceRow] : "";
-            StringBuilder builder = new StringBuilder(width);
-            for (int col = bounds.minCol; col <= bounds.maxCol; col++) {
-                builder.append(col < source.length() ? source.charAt(col) : ' ');
-            }
-            cropped[i] = rstrip(builder.toString());
-        }
-        return cropped;
-    }
-
-    private static String rstrip(String value) {
-        int end = value.length();
-        while (end > 0 && value.charAt(end - 1) == ' ') {
-            end--;
-        }
-        return value.substring(0, end);
-    }
-
-    private static int firstNonSpace(String line) {
-        for (int i = 0; i < line.length(); i++) {
-            if (line.charAt(i) != ' ') {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private static int lastNonSpace(String line) {
-        for (int i = line.length() - 1; i >= 0; i--) {
-            if (line.charAt(i) != ' ') {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private static int maxFrameWidth(List<String[]> frames) {
-        int max = 0;
-        for (String[] frame : frames) {
-            for (String line : frame) {
-                max = Math.max(max, line.length());
-            }
-        }
-        return max;
-    }
-
-    private static int maxFrameHeight(List<String[]> frames) {
-        int max = 0;
-        for (String[] frame : frames) {
-            max = Math.max(max, frame.length);
-        }
-        return max;
-    }
-
-    private static int detectColumns() {
-        Integer envColumns = parsePositiveInt(System.getenv("COLUMNS"));
-        if (envColumns != null && envColumns > 0) {
-            return envColumns;
-        }
-        Integer ttyColumns = detectColumnsFromStty();
-        if (ttyColumns != null && ttyColumns > 0) {
-            return ttyColumns;
-        }
-        return 100;
-    }
-
-    private static Integer detectColumnsFromStty() {
-        ProcessBuilder processBuilder = new ProcessBuilder("/bin/sh", "-c", "stty size < /dev/tty 2>/dev/null");
-        try {
-            Process process = processBuilder.start();
-            try (InputStream inputStream = process.getInputStream()) {
-                byte[] bytes = inputStream.readAllBytes();
-                int exitCode = process.waitFor();
-                if (exitCode != 0 || bytes.length == 0) {
-                    return null;
-                }
-                String output = new String(bytes, StandardCharsets.UTF_8).trim();
-                if (output.isEmpty()) {
-                    return null;
-                }
-                String[] parts = output.split("\\s+");
-                if (parts.length != 2) {
-                    return null;
-                }
-                Integer parsed = parsePositiveInt(parts[1]);
-                return (parsed != null && parsed > 0) ? parsed : null;
-            }
-        } catch (IOException | InterruptedException ignored) {
-            if (ignored instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            return null;
-        }
-    }
-
-    private void startWorker() {
-        if (!enabled || frames.isEmpty()) {
-            return;
-        }
-        running = true;
-        worker = new Thread(() -> {
-            int frameIndex = 0;
-            synchronized (System.out) {
-                System.out.print(CSI + "?25l");
-                System.out.flush();
-            }
-            try {
-                while (running) {
-                    String[] frame = frames.get(frameIndex);
-                    drawFrame(frame);
-                    frameIndex = (frameIndex + 1) % frames.size();
-                    try {
-                        Thread.sleep(frameDelayMs);
-                    } catch (InterruptedException interruptedException) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
-                }
-            } finally {
-                clearFrameArea();
-                synchronized (System.out) {
-                    System.out.print(CSI + "?25h");
-                    System.out.flush();
-                }
-            }
-        }, "terminal-cat-animation");
-        worker.setDaemon(true);
-        worker.start();
-    }
-
-    private void drawFrame(String[] frame) {
-        synchronized (System.out) {
-            System.out.print(SAVE_CURSOR);
-            for (int row = 0; row < frameHeight; row++) {
-                String line = row < frame.length ? frame[row] : "";
-                System.out.print(CSI + (startRow + row) + ";" + startCol + "H");
-                System.out.print(padRight(line, frameWidth));
-            }
-            System.out.print(RESTORE_CURSOR);
-            System.out.flush();
-        }
-    }
-
-    private void clearFrameArea() {
-        synchronized (System.out) {
-            System.out.print(SAVE_CURSOR);
-            String clearLine = " ".repeat(frameWidth);
-            for (int row = 0; row < frameHeight; row++) {
-                System.out.print(CSI + (startRow + row) + ";" + startCol + "H");
-                System.out.print(clearLine);
-            }
-            System.out.print(RESTORE_CURSOR);
-            System.out.flush();
-        }
-    }
-
-    private static String padRight(String value, int width) {
-        if (value.length() >= width) {
-            return value;
-        }
-        return value + " ".repeat(width - value.length());
-    }
-
-    @Override
-    public void close() {
-        if (!enabled) {
-            return;
-        }
-        running = false;
-        if (worker != null) {
-            worker.interrupt();
-            try {
-                worker.join(500L);
-            } catch (InterruptedException interruptedException) {
-                Thread.currentThread().interrupt();
-            }
-        }
-    }
-
-    public int getTextWidthLimit() {
-        if (!enabled) {
-            return -1;
-        }
-        return Math.max(1, startCol - 2);
-    }
-
-    private record Bounds(int minRow, int maxRow, int minCol, int maxCol) {
-        static Bounds empty() {
-            return new Bounds(0, -1, 0, -1);
-        }
-
-        boolean isEmpty() {
-            return maxRow < minRow || maxCol < minCol;
-        }
-    }
-
-    private record AnimationData(List<String[]> frames, long delayMs) {
-    }
+    @Override public void close() { running = false; if (worker != null) worker.interrupt(); }
+    public int getTextWidthLimit() { return enabled ? Math.max(10, startCol - 2) : -1; }
+    private record Bounds(int minRow, int maxRow, int minCol, int maxCol) {}
 }
