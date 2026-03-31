@@ -82,6 +82,7 @@ public final class TerminalCatAnimation implements AutoCloseable {
     }
 
     private static int getCols() {
+        if (System.getProperty("os.name").toLowerCase().contains("win")) return 100;
         try {
             var p = new ProcessBuilder("/bin/sh", "-c", "stty size < /dev/tty").start();
             return Integer.parseInt(new String(p.getInputStream().readAllBytes()).trim().split("\\s+")[1]);
