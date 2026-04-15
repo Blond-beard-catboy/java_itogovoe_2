@@ -5,11 +5,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.regex.Pattern;
 
 public final class TerminalCatAnimation implements AutoCloseable {
-    private static final Pattern DELAY = Pattern.compile("var\\s+delay\\s*=\\s*(\\d+)"),
-                                FRAME = Pattern.compile("fcontent\\[(\\d+)]\\s*=\\s*\"(.*?)\"\\s*", Pattern.DOTALL);
     private final boolean enabled;
     private final int startRow, startCol, frameWidth, frameHeight;
     private final List<String[]> frames;
@@ -27,8 +24,7 @@ public final class TerminalCatAnimation implements AutoCloseable {
         if (path == null) return disabled();
         try {
             var content = Files.readString(path, StandardCharsets.UTF_8);
-            var dMatcher = DELAY.matcher(content);
-            long d = dMatcher.find() ? Long.parseLong(dMatcher.group(1)) : 100L;
+            long d = 100L;
             var raw = parse(content);
             if (raw.isEmpty()) return disabled();
             var b = getBounds(raw);
@@ -43,18 +39,17 @@ public final class TerminalCatAnimation implements AutoCloseable {
     private static TerminalCatAnimation disabled() { return new TerminalCatAnimation(false, 0, 0, 0, 0, List.of(), 100); }
 
     private static List<String[]> parse(String c) {
-        var m = FRAME.matcher(c);
-        var indexed = new TreeMap<Integer, String>();
-        while (m.find()) indexed.put(Integer.parseInt(m.group(1)), m.group(2));
-        if (indexed.isEmpty()) {
-            var lines = c.replace("\r", "").split("\n");
-            var fs = new ArrayList<String[]>();
-            var current = new ArrayList<String>();
-            for (var l : lines) { if (l.trim().equals(",")) { if (!current.isEmpty()) fs.add(current.toArray(String[]::new)); current.clear(); } else current.add(l); }
-            if (!current.isEmpty()) fs.add(current.toArray(String[]::new));
-            return fs;
+        var lines = c.replace("\r", "").split("\n");
+        var fs = new ArrayList<String[]>();
+        var current = new ArrayList<String>();
+        for (var l : lines) { 
+            if (l.trim().equals(",")) { 
+                if (!current.isEmpty()) fs.add(current.toArray(String[]::new)); 
+                current.clear(); 
+            } else current.add(l); 
         }
-        return indexed.values().stream().map(s -> s.replace("&nbsp;", " ").replace("<br>", "\n").replace("\r", "").split("\n", -1)).toList();
+        if (!current.isEmpty()) fs.add(current.toArray(String[]::new));
+        return fs;
     }
 
     private static Bounds getBounds(List<String[]> fs) {
@@ -82,7 +77,6 @@ public final class TerminalCatAnimation implements AutoCloseable {
     }
 
     private static int getCols() {
-        if (System.getProperty("os.name").toLowerCase().contains("win")) return 100;
         try {
             var p = new ProcessBuilder("/bin/sh", "-c", "stty size < /dev/tty").start();
             return Integer.parseInt(new String(p.getInputStream().readAllBytes()).trim().split("\\s+")[1]);

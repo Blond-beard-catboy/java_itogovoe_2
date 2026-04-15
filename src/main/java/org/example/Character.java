@@ -5,14 +5,19 @@ import java.util.List;
 public class Character extends AbstractCharacter {
     private String ability, backstory;
 
-    public Character() { this("Безымянный герой", "Человек", "Странник", 70, 12, 12, 10, "Приспособляемость", "История героя еще не написана."); }
-    public Character(String n, String r, String h) { this(n, r, h, 80, 14, 13, 11, "Базовое мастерство", "Герой только начинает путь."); }
+    public Character() {
+        this("Безымянный герой", "Человек", "Странник", 70, 12, 12, 10, "Приспособляемость", "История героя еще не написана.");
+    }
+
     public Character(String name, String race, String heroClass, int health, int attack, int intel, int luck, String ability, String backstory) {
         super(name, race, heroClass, health, attack, intel, luck);
-        this.ability = sanitize(ability, "Неизвестная способность");
-        this.backstory = sanitize(backstory, "История отсутствует.");
+        this.ability = Utils.sanitize(ability, "Неизвестная способность");
+        this.backstory = Utils.sanitize(backstory, "История отсутствует.");
     }
-    public Character(Character o) { this(o.getName(), o.getRace(), o.getHeroClass(), o.getHealth(), o.getAttack(), o.getIntelligence(), o.getLuck(), o.getSpecialAbility(), o.getBackstory()); }
+
+    public Character(Character o) {
+        this(o.getName(), o.getRace(), o.getHeroClass(), o.getHealth(), o.getAttack(), o.getIntelligence(), o.getLuck(), o.getSpecialAbility(), o.getBackstory());
+    }
 
     @Override public String generateDescription() { return generateDescription(true); }
     public String generateDescription(boolean full) {
@@ -21,9 +26,9 @@ public class Character extends AbstractCharacter {
     }
 
     @Override public String getSpecialAbility() { return ability; }
-    public void setSpecialAbility(String a) { this.ability = sanitize(a, this.ability); }
+    public void setSpecialAbility(String a) { this.ability = Utils.sanitize(a, this.ability); }
     public String getBackstory() { return backstory; }
-    public void setBackstory(String b) { this.backstory = sanitize(b, this.backstory); }
+    public void setBackstory(String b) { this.backstory = Utils.sanitize(b, this.backstory); }
 
     public static List<Character> getTemplates() {
         return List.of(

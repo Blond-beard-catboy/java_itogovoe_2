@@ -1,19 +1,15 @@
 package org.example;
 
 import java.util.List;
-import static org.example.AbstractCharacter.clamp;
-import static org.example.AbstractCharacter.sanitize;
 
 public record Pet(String name, String species, String feature, int loyalty) {
     public Pet {
-        name = sanitize(name, "Безымянный питомец");
-        species = sanitize(species, "неизвестный вид");
-        feature = sanitize(feature, "без особенностей");
-        loyalty = clamp(loyalty, 1, 10);
+        name = Utils.sanitize(name, "Безымянный питомец");
+        species = Utils.sanitize(species, "неизвестный вид");
+        feature = Utils.sanitize(feature, "без особенностей");
+        loyalty = Utils.clamp(loyalty, 1, 10);
     }
     public Pet() { this(null, null, null, 5); }
-    public Pet(String n, String s) { this(n, s, null, 6); }
-    public Pet(Pet o) { this(o.name(), o.species(), o.feature(), o.loyalty()); }
     public String describe() { return "%s (%s). Особенность: %s. Верность: %d/10.".formatted(name, species, feature, loyalty); }
 
     public static List<Pet> getTemplates() {
