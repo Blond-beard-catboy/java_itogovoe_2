@@ -30,8 +30,8 @@ public class VirtualWorld {
                "В руках героя находится %s, известный тем, что %s. Путь героя лежит через локацию \"%s\", где %s. " +
                "В этот момент происходит событие \"%s\": %s. Последствия события таковы: %s.")
             .formatted(worldName, character.getName(), character.getHeroClass(), character.getRace(), 
-                       pet.name(), pet.species(), artifact.name(), artifact.power(), 
-                       location.name(), location.atmosphere(), event.title(), event.description(), event.consequence());
+                       pet.getName(), pet.getSpecies(), artifact.getName(), artifact.getPower(), 
+                       location.getName(), location.getAtmosphere(), event.getTitle(), event.getDescription(), event.getConsequence());
     }
 
     public static String getWorldName() { return worldName; }

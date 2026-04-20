@@ -21,7 +21,7 @@ public class Character extends AbstractCharacter {
 
     @Override public String generateDescription() { return generateDescription(true); }
     public String generateDescription(boolean full) {
-        var s = "%s — %s (%s). Способность: %s.".formatted(getName(), getHeroClass(), getRace(), ability);
+        var s = "%s - %s (%s). Способность: %s.".formatted(getName(), getHeroClass(), getRace(), ability);
         return full ? s + " " + generateStatsLine() + " История: " + backstory : s;
     }
 

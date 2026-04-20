@@ -2,15 +2,38 @@ package org.example;
 
 import java.util.List;
 
-public record Location(String name, String climate, String danger, String atmosphere) {
-    public Location {
-        name = Utils.sanitize(name, "Безымянная локация");
-        climate = Utils.sanitize(climate, "умеренный");
-        danger = Utils.sanitize(danger, "неизвестная угроза");
-        atmosphere = Utils.sanitize(atmosphere, "таинственная");
+public class Location {
+    private String name;
+    private String climate;
+    private String danger;
+    private String atmosphere;
+
+    public Location() {
+        this(null, null, null, null);
     }
-    public Location() { this(null, null, null, null); }
-    public String describe() { return "%s. Климат: %s. Угроза: %s. Атмосфера: %s.".formatted(name, climate, danger, atmosphere); }
+
+    public Location(String name, String climate, String danger, String atmosphere) {
+        this.name = Utils.sanitize(name, "Безымянная локация");
+        this.climate = Utils.sanitize(climate, "умеренный");
+        this.danger = Utils.sanitize(danger, "неизвестная угроза");
+        this.atmosphere = Utils.sanitize(atmosphere, "таинственная");
+    }
+
+    public String describe() {
+        return "%s. Климат: %s. Угроза: %s. Атмосфера: %s.".formatted(name, climate, danger, atmosphere);
+    }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = Utils.sanitize(name, this.name); }
+
+    public String getClimate() { return climate; }
+    public void setClimate(String climate) { this.climate = Utils.sanitize(climate, this.climate); }
+
+    public String getDanger() { return danger; }
+    public void setDanger(String danger) { this.danger = Utils.sanitize(danger, this.danger); }
+
+    public String getAtmosphere() { return atmosphere; }
+    public void setAtmosphere(String atmosphere) { this.atmosphere = Utils.sanitize(atmosphere, this.atmosphere); }
 
     public static List<Location> getTemplates() {
         return List.of(
