@@ -1,3 +1,5 @@
+METADATA: 40 23 150
+===FRAME===
                   :                     
                   57i:.                 
                   7jrvuUU7:             
@@ -21,8 +23,7 @@
             7 .:              ,  i.     
            iu:2,              .S:L:     
              ,v                7.       
-,
-
+===FRAME===
                   ;                     
                   BXY;.                 
                   FM10BBBXi             
@@ -46,8 +47,7 @@
            .X ,;              i  u.     
            jB;B:              ,BL0L     
              iP                X,       
-,
-
+===FRAME===
                   :                     
                   57i:.                 
                   7jrvuUU7:             
@@ -71,8 +71,7 @@
             7 .:              ,  i.     
            iu:2,              .S:L:     
              ,v                7.       
-,
-
+===FRAME===
                   ;                     
                   BXY;.                 
                   FM10BBBXi             
@@ -96,8 +95,7 @@
            .X ,;              i  u.     
            jB;B:              ,BL0L     
              iP                X,       
-,
-
+===FRAME===
                   :                     
                   57i:.                 
                   7jrvuUU7:             
@@ -121,8 +119,7 @@
             7 .:              ,  i.     
            iu:2,              .S:L:     
              ,v                7.       
-,
-
+===FRAME===
                    .L                   
                     U7i:                
                     vLrL2UJ:            
@@ -146,8 +143,7 @@
             7 .:              ,  i.     
            iU:2.              .5iL:     
              ,v                7.       
-,
-
+===FRAME===
                    .L                   
                     U7i:                
                     vLrL2UJ:            
@@ -171,8 +167,7 @@
           :Z: ,.             iJrY5P:    
             :7F.              :Y,:      
               r                i        
-,
-
+===FRAME===
                    .L                   
                     U7i:                
                     vLrL2UJ:            
@@ -196,8 +191,7 @@
    .,,:,, :0, ,.             :L7YL7r,   
             :7F.              :Y:i      
               r                i        
-,
-
+===FRAME===
                    .L                   
                     U7i:                
                     vLrL2UJ:            
@@ -221,8 +215,7 @@
     ::r:. .0, ,.             :vYY:::::: 
             :7F.              :Y;i..    
               r                :        
-,
-
+===FRAME===
                    .Y                   
                     U7i:                
                     vLrL2UJ:            
@@ -246,8 +239,7 @@ iF: .  i ,Urr7.      7kY     7i;7.5U,i
           .E, ,.             :LvYY7r:   
            .:7F.              :Y:i      
               r                i        
-,
-
+===FRAME===
                    .Y                   
                     U7i:                
                     vLrL2UJ:            
@@ -271,8 +263,7 @@ vBv    L .OS  uXi.   ,Y    .Y :: .:Y:Y.
    .7uXj:  P, ,.             iYrY5P:    
             :7F.              :Y,:      
               r                i        
-,
-
+===FRAME===
                    .Y                   
                     U7i:                
                     vLrL2UJ:            
@@ -296,8 +287,7 @@ YB7 :  2 rBM  JXi.   ,Y      ; .: :i7:i.
   .vZBBBB7,2. ,.             :LvYY7r:   
      ...    :7F.              :Y:i      
               r                i        
-,
-
+===FRAME===
                    .Y                   
                     U7i:                
                     vLrL2UJ:            
@@ -321,8 +311,7 @@ YB7 :  2 rBM  JXi.   ,Y       7  L Yi,7.
   .vZBBBB7,2. ,.             :vYL:::::: 
      ...    :7F.              ,Y;i..    
               r                i        
-,
-
+===FRAME===
                    .Y                   
                     U7i:                
                     vLrL2UJ:            
@@ -346,8 +335,7 @@ YB7 :  2 rBM  JXi.   ,Y      ; .: :i7:i.
   .vZBBBB7,2. ,.             :LvYY7r:   
      ...    :7F.              :Y:i      
               r                i        
-,
-
+===FRAME===
                    .Y                   
                     U7i:                
                     vLrL2UJ:            
@@ -371,8 +359,7 @@ YB7 :  2 rBM  JXi.   ,Y    .Y :: .:Y:Y.
   .vZBBBB7,2. ,.             iYrY5P:    
      ...    :7F.              :Y,:      
               r                i        
-,
-
+===FRAME===
                    .Y                   
                     U7i:                
                     vLrL2UJ:            

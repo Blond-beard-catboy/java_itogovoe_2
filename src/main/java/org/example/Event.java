@@ -2,14 +2,33 @@ package org.example;
 
 import java.util.List;
 
-public record Event(String title, String description, String consequence) {
-    public Event {
-        title = Utils.sanitize(title, "Безымянное событие");
-        description = Utils.sanitize(description, "в мире произошло нечто необычное");
-        consequence = Utils.sanitize(consequence, "последствия пока неизвестны");
+public class Event {
+    private String title;
+    private String description;
+    private String consequence;
+
+    public Event() {
+        this(null, null, null);
     }
-    public Event() { this(null, null, null); }
-    public String describe() { return "%s: %s. Последствия: %s.".formatted(title, description, consequence); }
+
+    public Event(String title, String description, String consequence) {
+        this.title = Utils.sanitize(title, "Безымянное событие");
+        this.description = Utils.sanitize(description, "в мире произошло нечто необычное");
+        this.consequence = Utils.sanitize(consequence, "последствия пока неизвестны");
+    }
+
+    public String describe() {
+        return "%s: %s. Последствия: %s.".formatted(title, description, consequence);
+    }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = Utils.sanitize(title, this.title); }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = Utils.sanitize(description, this.description); }
+
+    public String getConsequence() { return consequence; }
+    public void setConsequence(String consequence) { this.consequence = Utils.sanitize(consequence, this.consequence); }
 
     public static List<Event> getTemplates() {
         return List.of(
